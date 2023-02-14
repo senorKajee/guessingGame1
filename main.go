@@ -2,100 +2,87 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 )
 
-type GuessRequestBody struct {
-	Guess int `json:"guess"`
-}
-
-type GuessResponseBody struct {
-	Status       string `json:"status"`
-	NumGuesses   int    `json:"numGuesses,omitempty"`
-	ErrorMessage string `json:"errorMessage,omitempty"`
-}
-
-type LoginRequestBody struct {
+type Credentials struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-type LoginResponseBody struct {
-	Token string `json:"token"`
+type Result struct {
+	Result string `json:"result"`
 }
 
-var numToGuess int
-var numGuesses int
-var authenticated bool
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+var correctNumber = 42
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/login", loginHandler).Methods("POST")
-	r.HandleFunc("/guess", guessHandler).Methods("POST")
-	log.Fatal(http.ListenAndServe(":8080", r))
-}
+	router := mux.NewRouter()
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "login.html")
+	})
 
-	var requestBody LoginRequestBody
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
+	router.HandleFunc("/guessing", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "guessing.html")
+	})
 
-	if requestBody.Username == "admin" && requestBody.Password == "password" {
-		token := "my-random-token"
-		responseBody := LoginResponseBody{Token: token}
-		json.NewEncoder(w).Encode(responseBody)
-		authenticated = true
-	} else {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-}
+	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		var creds Credentials
+		err := json.NewDecoder(r.Body).Decode(&creds)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request payload"})
+			return
+		}
 
-func guessHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+		// TODO: Add actual authentication logic here
+		if creds.Username != "username" || creds.Password != "password" {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid username or password"})
+			return
+		}
 
-	if !authenticated {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+		token := "dummy-token"
+		json.NewEncoder(w).Encode(map[string]string{"token": token})
+	})
 
-	var requestBody GuessRequestBody
-	err := json.NewDecoder(r.Body).Decode(&requestBody)
-	if err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
+	router.HandleFunc("/guess", func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+		if token == "" || token != "Bearer dummy-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid or missing token"})
+			return
+		}
 
-	if numToGuess == 0 {
-		numToGuess = rand.Intn(100) + 1
-	}
+		var guess struct {
+			Guess int `json:"guess"`
+		}
+		err := json.NewDecoder(r.Body).Decode(&guess)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request payload"})
+			return
+		}
 
-	numGuesses++
+		result := "too low"
+		if guess.Guess > correctNumber {
+			result = "too high"
+		} else if guess.Guess == correctNumber {
+			result = "correct"
+		}
 
-	if requestBody.Guess < numToGuess {
-		responseBody := GuessResponseBody{Status: "tooLow"}
-		json.NewEncoder(w).Encode(responseBody)
-	} else if requestBody.Guess > numToGuess {
-		responseBody := GuessResponseBody{Status: "tooHigh"}
-		json.NewEncoder(w).Encode(responseBody)
-	} else {
-		responseBody := GuessResponseBody{Status: "success", NumGuesses: numGuesses}
-		json.NewEncoder(w).Encode(responseBody)
-		numToGuess = 0
-		numGuesses = 0
-	}
-}
+		json.NewEncoder(w).Encode(Result{Result: result})
+	})
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
+	fmt.Println("Server running on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
