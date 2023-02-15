@@ -26,7 +26,7 @@ var correctNumber = 42
 
 func main() {
 	router := mux.NewRouter()
-
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "login.html")
 	})

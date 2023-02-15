@@ -21,8 +21,7 @@ loginForm.addEventListener('submit', (event) => {
     .then(data => {
         if (data.token) {
             localStorage.setItem('token', data.token);
-            loginContainer.style.display = 'none';
-            guessContainer.style.display = 'block';
+            window.location.href = '/guess.html';
         }
     })
     .catch(error => console.error(error));
