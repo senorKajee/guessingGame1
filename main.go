@@ -27,6 +27,7 @@ var correctNumber = 42
 func main() {
 	router := mux.NewRouter()
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+	router.Use(loggingMiddleware)
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("index.html")
 		http.ServeFile(w, r, "static/index.html")
@@ -38,6 +39,7 @@ func main() {
 	})
 
 	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("login part")
 		var creds Credentials
 		err := json.NewDecoder(r.Body).Decode(&creds)
 		if err != nil {
@@ -58,6 +60,7 @@ func main() {
 	})
 
 	router.HandleFunc("/guess", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("guess part")
 		token := r.Header.Get("Authorization")
 		if token == "" || token != "Bearer dummy-token" {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -84,7 +87,6 @@ func main() {
 
 		json.NewEncoder(w).Encode(Result{Result: result})
 	})
-	router.Use(loggingMiddleware)
 
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
@@ -97,4 +99,21 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		// Call the next handler, which can be another middleware in the chain, or the final handler.
 		next.ServeHTTP(w, r)
 	})
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	// Extract the path of the request URL
+	path := r.URL.Path
+
+	// Use the path to route the request to different handlers
+	switch path {
+	case "/":
+		homeHandler(w, r)
+	case "/login":
+		loginHandler(w, r)
+	case "/guess":
+		guessHandler(w, r)
+	default:
+		http.NotFound(w, r)
+	}
 }
