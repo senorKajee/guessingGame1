@@ -28,11 +28,13 @@ func main() {
 	router := mux.NewRouter()
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "login.html")
+		fmt.Println("index.html")
+		http.ServeFile(w, r, "static/index.html")
 	})
 
 	router.HandleFunc("/guessing", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "guessing.html")
+		fmt.Println("guessing.html")
+		http.ServeFile(w, r, "static/guessing.html")
 	})
 
 	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +84,17 @@ func main() {
 
 		json.NewEncoder(w).Encode(Result{Result: result})
 	})
+	router.Use(loggingMiddleware)
 
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Do stuff here
+		log.Println(r.RequestURI)
+		// Call the next handler, which can be another middleware in the chain, or the final handler.
+		next.ServeHTTP(w, r)
+	})
 }
