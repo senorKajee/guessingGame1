@@ -8,15 +8,17 @@
 <body>
 	<h1>Guessing Game</h1>
 
-	<div id="guess-container" style="display: none;">
-		<label for="guess">Guess a number between 1 and 10:</label>
-		<input type="number" id="guess" name="guess" min="1" max="10" required>
+	<div id="guess-container" >
+		<label for="guess">Guess a number between 1 and 100:</label>
+		<input type="number" id="guess" name="guess" min="1" max="100" required>
 
 		<button id="submit-guess" type="submit">Submit Guess</button>
-		
 		<p id="result"></p>
 	</div>
 
-	<script src="js/guessing.js"></script>
+	<script src="app.js"></script>
+	<script src="../js/guessing.js"></script>
+	
 </body>
 </html>
+

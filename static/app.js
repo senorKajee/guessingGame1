@@ -3,7 +3,6 @@ const loginContainer = document.getElementById('login-container');
 const guessContainer = document.getElementById('guess-container');
 const submitGuessBtn = document.getElementById('submit-guess');
 const result = document.getElementById('result');
-
 loginForm.addEventListener('submit', (event) => {
 	event.preventDefault();
 

@@ -1,6 +1,16 @@
 const submitGuessBtn = document.getElementById('submit-guess');
 const result = document.getElementById('result');
 
+let isLoggedIn = false;
+if (localStorage.getItem('token')) {
+	isLoggedIn = true;
+}
+if (isLoggedIn) {
+	document.getElementById('guess-container').style.display = 'block';
+} else {
+	window.location.href = '../static/login.html';
+}
+
 submitGuessBtn.addEventListener('click', () => {
 	const guess = document.getElementById('guess').value;
 	const token = localStorage.getItem('token');
@@ -22,3 +32,4 @@ submitGuessBtn.addEventListener('click', () => {
 	})
 	.catch(error => console.error(error));
 });
+
