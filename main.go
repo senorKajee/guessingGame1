@@ -26,18 +26,22 @@ var correctNumber = 42
 
 func main() {
 	router := mux.NewRouter()
+	router.Use(loggingMiddleware)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
+
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("index.html")
 		http.ServeFile(w, r, "static/index.html")
 	})
 
 	router.HandleFunc("/guessing", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("guessing.html")
 		http.ServeFile(w, r, "static/guessing.html")
 	})
-
 	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request method"})
+			return
+		}
 		var creds Credentials
 		err := json.NewDecoder(r.Body).Decode(&creds)
 		if err != nil {
@@ -45,8 +49,6 @@ func main() {
 			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid request payload"})
 			return
 		}
-
-		// TODO: Add actual authentication logic here
 		if creds.Username != "username" || creds.Password != "password" {
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(ErrorResponse{Error: "Invalid username or password"})
@@ -84,8 +86,6 @@ func main() {
 
 		json.NewEncoder(w).Encode(Result{Result: result})
 	})
-	router.Use(loggingMiddleware)
-
 	fmt.Println("Server running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
